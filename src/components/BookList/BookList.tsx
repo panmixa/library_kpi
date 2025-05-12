@@ -26,6 +26,7 @@ import BookCover from '../BookCover';
 const BookList: React.FC = () => {
   const navigate = useNavigate();
   const [books, setBooks] = useState<Book[]>([]);
+  const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [genres, setGenres] = useState<string[]>([]);
   const [authors, setAuthors] = useState<string[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<string>('');
@@ -34,25 +35,26 @@ const BookList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Завантажуємо всі книги при першому рендері
   useEffect(() => {
-    const loadBooks = async () => {
+    const loadAllBooks = async () => {
       try {
         setLoading(true);
         setError(null);
-        const filters = {
-          ...(selectedGenre && { genre: selectedGenre }),
-          ...(selectedAuthor && { author: selectedAuthor }),
-        };
-        console.log('Loading books with filters:', filters);
-        const booksData = await getBooks(filters);
+        console.log('Loading all books');
+        const booksData = await getBooks();
         console.log('Received books:', booksData);
 
         if (!Array.isArray(booksData)) {
           throw new Error('Invalid books data received');
         }
 
+        // Зберігаємо всі книги
         setBooks(booksData);
+        // Спочатку всі книги відфільтровані
+        setFilteredBooks(booksData);
 
+        // Отримуємо унікальні жанри та авторів з усіх книг
         const uniqueGenres = [...new Set(booksData.map((book: Book) => book.genre))] as string[];
         const uniqueAuthors = [...new Set(booksData.map((book: Book) => book.author))] as string[];
 
@@ -62,13 +64,31 @@ const BookList: React.FC = () => {
         console.error('Error loading books:', err);
         setError(err.message || 'Failed to load books');
         setBooks([]);
+        setFilteredBooks([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadBooks();
-  }, [selectedGenre, selectedAuthor]);
+    loadAllBooks();
+  }, []); // Виконуємо тільки при першому рендері
+  
+  // Фільтруємо книги при зміні фільтрів
+  useEffect(() => {
+    if (books.length === 0) return;
+    
+    let result = [...books];
+    
+    if (selectedGenre) {
+      result = result.filter(book => book.genre === selectedGenre);
+    }
+    
+    if (selectedAuthor) {
+      result = result.filter(book => book.author === selectedAuthor);
+    }
+    
+    setFilteredBooks(result);
+  }, [books, selectedGenre, selectedAuthor]);
 
   useEffect(() => {
     const loadProgress = async () => {
@@ -156,13 +176,13 @@ const BookList: React.FC = () => {
         </Grid>
       </Box>
 
-      {books.length === 0 ? (
+      {filteredBooks.length === 0 ? (
         <Typography variant="h6" align="center" sx={{ mt: 4 }}>
           No books found
         </Typography>
       ) : (
         <Grid container spacing={3}>
-          {books.map((book) => (
+          {filteredBooks.map((book) => (
             <Grid item key={book.id} xs={12} sm={6} md={4}>
               <Card
                 sx={{

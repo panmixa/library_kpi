@@ -117,4 +117,15 @@ export const logout = () => {
   localStorage.removeItem('auth_token');
 };
 
+// Get user profile information
+export const getUserProfile = async () => {
+  try {
+    const response = await api.get('/profile');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    throw error;
+  }
+};
+
 export default api;
